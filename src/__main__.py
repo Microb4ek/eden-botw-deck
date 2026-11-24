@@ -137,10 +137,10 @@ def undo(journal):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--mode',choices=['normal','full','balanced','restore'])
+    parser.add_argument('--mode',choices=['ultracam','normal','full','balanced','restore'])
     parser.add_argument('--config',type=Path)
     args=parser.parse_args()
-    labels={'1080p · штатные 30 FPS':'normal','1080p · экспериментальные 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
+    labels={'UltraCam · 1080p · динамическая скорость до 60 FPS':'ultracam','1080p · штатные 30 FPS':'normal','1080p · экспериментальные 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
     mode=args.mode or labels[ask('BOTW для Nintendo Switch · обновление 1.6.0',list(labels))]
     for comm in Path('/proc').glob('[0-9]*/comm'):
         try: proc=comm.read_text().strip().lower()
@@ -184,7 +184,7 @@ def main():
             if get(path) not in (None,patch):
                 raise ValueError('Другой мод уже использует файл '+str(path))
             managed_paths.add(path)
-            omit = (mode == 'normal' and mod == 'Deck Static 60 FPS') or (mode == 'balanced' and mod == 'Deck Docked 1080p')
+            omit = mode == 'ultracam' or (mode == 'normal' and mod == 'Deck Static 60 FPS') or (mode == 'balanced' and mod == 'Deck Docked 1080p')
             plan(path, None if omit else patch)
         # Identify overlapping text patches for this exact executable before switching on the pack.
         addresses = set()
@@ -203,6 +203,24 @@ def main():
                     plan(other,None)
                 else:
                     raise ValueError("В Add-Ons отключи мод с пересекающимся патчем: "+folder)
+        if mode == 'ultracam':
+            folder = 'Deck UltraCam'
+            while folder in disabled: folder += ' (Deck)'
+            for sub in ('exefs/main.npdm','exefs/subsdk3','romfs/UltraCam/maxlastbreath.ini'):
+                for other in mods.glob('*/'+sub):
+                    if other.parent == mods/folder/'exefs' or other.parent.parent == mods/folder/'romfs': continue
+                    addon = other.relative_to(mods).parts[0]
+                    if addon not in disabled:
+                        raise ValueError('В Eden → Add-Ons отключи конфликтующий мод: '+addon)
+                payload = z.read('UltraCam/'+sub)
+                if sub.endswith('.ini'):
+                    payload = merged(payload.decode(), 'Resolution', {
+                        'MaxFramerate':'60','Width':'1920','Height':'1080',
+                        'QualityImprovements':'On'}).encode()
+                target_path = mods/folder/sub
+                if target_path.exists() and get(target_path) != payload:
+                    raise ValueError('Уже существует изменённый файл: '+str(target_path))
+                plan(target_path,payload)
     if plans:
         atomic(journal,json.dumps(plans).encode())
         try:
