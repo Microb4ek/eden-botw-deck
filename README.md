@@ -24,3 +24,7 @@ python3 setup.pyz
 ## UltraCam
 
 Автор UltraCam — MaxLastBreath. [Исходный комплект BOTW 1.0.1](https://github.com/MaxLastBreath/nx-optimizer/tree/bd98bb3c9ee7eb16c2dd3c51a8c6ecf168330cf3/src/PatchInfo/Breath%20Of%20The%20Wild/UltraCam). Файлы мода поставляются по [CC BY-NC 2.0](https://creativecommons.org/licenses/by-nc/2.0/). Установщик изменяет параметры INI при установке. Частота кадров и скорость эмуляции зависят от устройства и сцены.
+
+## Если в 1080p получается около 38 FPS
+
+Попробуй «UltraCam · 1080p · средняя дальность» для сохранения разрешения с меньшей дальностью прорисовки. Для проверки нагрузки от разрешения сравни исходный 1080p и «UltraCam · 720p · полная дальность» в одном месте. Во всех трёх профилях динамический тайминг и цель 60 FPS. Параметры CLI для новых режимов: `--mode ultracam-1080-medium` и `--mode ultracam-720`.

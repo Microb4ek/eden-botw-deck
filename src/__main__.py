@@ -135,12 +135,22 @@ def undo(journal):
         atomic(path,old)
     os.replace(journal, journal.with_suffix(".previous.json"))
 
+# Width, height and render distance from the BOTW UltraCam presets.
+ULTRACAM_PROFILES = {
+    'ultracam': (1920, 1080, 25000),
+    'ultracam-1080-medium': (1920, 1080, 12500),
+    'ultracam-720': (1280, 720, 25000),
+}
+
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--mode',choices=['ultracam','normal','full','balanced','restore'])
+    parser.add_argument('--mode',choices=[*ULTRACAM_PROFILES,'normal','full','balanced','restore'])
     parser.add_argument('--config',type=Path)
     args=parser.parse_args()
-    labels={'UltraCam · 1080p · динамическая скорость до 60 FPS':'ultracam','1080p · штатные 30 FPS':'normal','1080p · экспериментальные 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
+    labels={'UltraCam · 1080p · динамическая скорость до 60 FPS':'ultracam',
+            'UltraCam · 1080p · средняя дальность':'ultracam-1080-medium',
+            'UltraCam · 720p · полная дальность':'ultracam-720',
+            '1080p · штатные 30 FPS':'normal','1080p · экспериментальные 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
     mode=args.mode or labels[ask('BOTW для Nintendo Switch · обновление 1.6.0',list(labels))]
     for comm in Path('/proc').glob('[0-9]*/comm'):
         try: proc=comm.read_text().strip().lower()
@@ -184,7 +194,7 @@ def main():
             if get(path) not in (None,patch):
                 raise ValueError('Другой мод уже использует файл '+str(path))
             managed_paths.add(path)
-            omit = mode == 'ultracam' or (mode == 'normal' and mod == 'Deck Static 60 FPS') or (mode == 'balanced' and mod == 'Deck Docked 1080p')
+            omit = mode in ULTRACAM_PROFILES or (mode == 'normal' and mod == 'Deck Static 60 FPS') or (mode == 'balanced' and mod == 'Deck Docked 1080p')
             plan(path, None if omit else patch)
         # Identify overlapping text patches for this exact executable before switching on the pack.
         addresses = set()
@@ -203,7 +213,7 @@ def main():
                     plan(other,None)
                 else:
                     raise ValueError("В Add-Ons отключи мод с пересекающимся патчем: "+folder)
-        if mode == 'ultracam':
+        if mode in ULTRACAM_PROFILES:
             folder = 'Deck UltraCam'
             while folder in disabled: folder += ' (Deck)'
             for sub in ('exefs/main.npdm','exefs/subsdk3','romfs/UltraCam/maxlastbreath.ini'):
@@ -214,8 +224,9 @@ def main():
                         raise ValueError('В Eden → Add-Ons отключи конфликтующий мод: '+addon)
                 payload = z.read('UltraCam/'+sub)
                 if sub.endswith('.ini'):
+                    width, height, distance = ULTRACAM_PROFILES[mode]
                     payload = merged(payload.decode(), 'Resolution', {
-                        'MaxFramerate':'60','Width':'1920','Height':'1080',
+                        'MaxFramerate':'60','Width':str(width),'Height':str(height),'RenderDistance':str(distance),
                         'QualityImprovements':'On'}).encode()
                 target_path = mods/folder/sub
                 if target_path.exists() and get(target_path) != payload:
