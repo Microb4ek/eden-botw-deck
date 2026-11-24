@@ -1,0 +1,7 @@
+@nsobid-8E9978D50BDD20B4C8395A106C27FFDE
+
+# Docked 1080p framebuffer by Wollnashorn
+@flag offset_shift 0x100
+@enabled
+01821674 089EE8F2
+@stop

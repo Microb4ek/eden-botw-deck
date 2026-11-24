@@ -1,0 +1,9 @@
+@nsobid-8E9978D50BDD20B4C8395A106C27FFDE
+
+# Deck clarity - sampler fixes and docked FXAA bypass by Wollnashorn
+@flag offset_shift 0x100
+@enabled
+0128AC58 2AE0A0F2
+01D3EBB4 AA008052
+01420FD8 FF7300B9
+@stop

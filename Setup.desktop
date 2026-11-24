@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Настроить Zelda в Eden
+Icon=applications-games
+Terminal=true
+Exec=python3 -c "import os,sys,subprocess; from pathlib import Path; from urllib.parse import urlparse,unquote; p=sys.argv[1]; p=unquote(urlparse(p).path) if p.startswith('file:') else p; r=subprocess.call([sys.executable,str(Path(p).resolve().with_name('setup.pyz'))]); input('Enter — закрыть окно '); sys.exit(r)" %k
