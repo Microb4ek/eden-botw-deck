@@ -137,10 +137,10 @@ def undo(journal):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--mode',choices=['full','balanced','restore'])
+    parser.add_argument('--mode',choices=['normal','full','balanced','restore'])
     parser.add_argument('--config',type=Path)
     args=parser.parse_args()
-    labels={'1080p · цель 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
+    labels={'1080p · штатные 30 FPS':'normal','1080p · экспериментальные 60 FPS':'full','Штатное разрешение Docked · цель 60 FPS':'balanced','Вернуть прежние настройки':'restore'}
     mode=args.mode or labels[ask('BOTW для Nintendo Switch · обновление 1.6.0',list(labels))]
     for comm in Path('/proc').glob('[0-9]*/comm'):
         try: proc=comm.read_text().strip().lower()
@@ -173,6 +173,7 @@ def main():
         text=(get(profile) or b'').decode()
         for sec in base.sections(): text=merged(text,sec,dict(base.items(sec)))
         plan(profile,text.encode(),{sec:list(base[sec]) for sec in base.sections()})
+        managed_paths = set()
         for name in z.namelist():
             if not name.endswith('.pchtxt'): continue
             mod,_,file=name.split('/')
@@ -182,7 +183,9 @@ def main():
             patch=z.read(name)
             if get(path) not in (None,patch):
                 raise ValueError('Другой мод уже использует файл '+str(path))
-            plan(path,None if mode=='balanced' and mod=='Deck Docked 1080p' else patch)
+            managed_paths.add(path)
+            omit = (mode == 'normal' and mod == 'Deck Static 60 FPS') or (mode == 'balanced' and mod == 'Deck Docked 1080p')
+            plan(path, None if omit else patch)
         # Identify overlapping text patches for this exact executable before switching on the pack.
         addresses = set()
         for n in z.namelist():
@@ -191,8 +194,7 @@ def main():
         for other in mods.glob("*/exefs/*.pchtxt"):
             folder = other.parent.parent.name
             if folder in disabled or str(other) in plans: continue
-            if other.relative_to(mods).as_posix() in z.namelist(): continue
-            if folder.endswith(" (Deck)") and any(get(other)==z.read(n) for n in z.namelist() if n.endswith(".pchtxt")): continue
+            if other in managed_paths: continue
             raw=other.read_bytes().upper()
             if BUILD.encode() in raw and addresses.intersection(re.findall(rb"(?m)^([0-9A-F]{8})[ \t]+",raw)):
                 # Back up and suspend only an exact duplicate of a supplied patch.
@@ -208,7 +210,8 @@ def main():
         except BaseException:
             undo(journal)
             raise
-    return 'Готово. Профиль: '+str(profile)+'\nМоды: '+str(mods)+'\nЦель — 60 FPS. Реальная частота зависит от сцены.'
+    target = 'Штатная цель — 30 FPS.' if mode == 'normal' else 'Цель — 60 FPS.'
+    return 'Готово. Профиль: '+str(profile)+'\nМоды: '+str(mods)+'\n'+target
 
 if __name__=='__main__':
     try:
